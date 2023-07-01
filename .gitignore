@@ -1,0 +1,40 @@
+# Ignore Node.js build artifacts
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Ignore log files
+*.log
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Ignore environment-specific files
+.env
+
+# Ignore build output
+dist/
+build/
+out/
+
+# Ignore dependencies installed via package managers
+# Comment the package manager you're not using
+# npm
+package-lock.json
+# yarn
+yarn.lock
+# pnpm
+pnpm-lock.yaml
+
+# Ignore OS-generated files
+Thumbs.db
+.DS_Store
+
+# Ignore files and directories that shouldn't be committed
+/tmp/
+.cache/

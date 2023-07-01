@@ -1,59 +1,97 @@
 import React, { Component } from 'react';
 import styles from './AppStyles.module.scss';
+import api from '../api/apiHelper';
 
 class StartApplicationForm extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      applicationId: props.applicationId,
       firstName: props.firstName || '',
-      lastName: props.lastName || '',
+      lastName: props.lastName || ' ',
       email: props.email || '',
-      dateOfBirth: props.dateOfBirth || '',
-      street: props.street || '',
-      city: props.city || '',
-      state: props.state || '',
-      zipCode: props.zipCode || '',
-      isComplete: false,
-      skipToFinalStep: props.skipToFinalStep || false
+      dateOfBirth: props.dateOfBirth || ' ',
+      street: props.street || ' ',
+      city: props.city || ' ',
+      state: props.state || ' ',
+      zipCode: props.zipCode ||  null,
+      isEditing: props.isEditing || false,
+      skipToFinalStep: props.skipToFinalStep || false,
+      isLoading: false,
+      responseMessage: null
     };
   }
 
   handleChange = (e) => {
-    this.setState({ [e.target.name]: e.target.value }, this.checkFormCompletion);
+    this.setState({ [e.target.name]: e.target.value });
   }
 
   handleZipCodeChange = (event) => {
     const { value } = event.target;
     const zipCode = value.replace(/\D/g, "").slice(0, 5); // Remove non-digit characters and limit to 5 digits
     this.setState({ zipCode });
-    this.checkFormCompletion();
   };
-  
-  checkFormCompletion = () => {
-    const { firstName, lastName, email, dateOfBirth, street, city, state, zipCode } = this.state;
-  
-    const isComplete = firstName && lastName && email && dateOfBirth && street && city && state && zipCode;
-    
-    this.setState({ isComplete });
-  }
 
   handleCancel= (e) => {
     this.props.onNextStep();    
   }
 
-  handleSubmit = (e) => {
-    e.preventDefault();
-    // You can use an API call to send the form data to the server
-    // and proceed to the next view
-    const { firstName, lastName, email, dateOfBirth, street, city, state, zipCode } = this.state;
-    this.props.onFormSubmit({ firstName, lastName, email, dateOfBirth, street, city, state, zipCode });
-    // Set the parent state from 1 to 2
+  calculateAge = (dateOfBirth) => {
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDifference = today.getMonth() - dob.getMonth();
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age;
   }
+
+  handleSubmit = async (e) => {
+    e.preventDefault();
+    this.setState({ isLoading: true, responseMessage: null });
+
+    const { firstName, lastName, email, dateOfBirth, street, city, state, zipCode, isEditing } = this.state;
+    let applicationId = this.state.applicationId;
+  
+    try {
+      const applicationDto = {
+        firstName,
+        lastName,
+        email,
+        dateOfBirth,
+        address: {
+          street,
+          city,
+          state,
+          zipCode,
+        },
+      };
+      let response = null;
+      if (isEditing) {
+        response = await api.updateInsuranceApplication(this.state.applicationId, applicationDto);
+        this.setState({ responseMessage: 'application updated Successful!' });
+      } else {
+        response = await api.createInsuranceApplication(applicationDto);
+        applicationId = response.applicationId;
+        applicationId = sessionStorage.setItem('applicationId', applicationId);
+        this.setState({ responseMessage: 'Insurance application created!' });
+      }
+
+      setTimeout(() => {
+        this.props.onFormSubmit({ firstName, lastName, email, dateOfBirth, street, city, state, zipCode, applicationId });
+        this.setState({ isLoading: false });
+      }, 2000);
+    } catch (error) {
+      console.error(error);
+      this.setState({ responseMessage: 'Failed to submit!', isLoading: false });
+    }
+  }
+  
 
 
   render() {
-    const {
-      firstName,
+    const {firstName,
       lastName,
       email,
       dateOfBirth,
@@ -61,9 +99,18 @@ class StartApplicationForm extends Component {
       city,
       state,
       zipCode,
-      isComplete,
-      skipToFinalStep
+      skipToFinalStep,
+      isEditing,
+      isLoading,
+      responseMessage
     } = this.state;
+
+    console.log(this.state)
+
+    const age = this.calculateAge(dateOfBirth);
+    const isAgeValid = age >= 16;
+    const isValidZip = /^\d{5}$/.test(zipCode);
+    const isComplete = firstName && lastName && email && dateOfBirth && street && city && state && zipCode ? true : false;
 
     return (
       <div className={styles.formContainer}>
@@ -86,6 +133,7 @@ class StartApplicationForm extends Component {
     
           <label htmlFor="dateOfBirth">Date of Birth</label>
           <input type="date" id="dateOfBirth" name="dateOfBirth" value={dateOfBirth} onChange={this.handleChange} />
+          {!isAgeValid && <p className={styles.errorMessage}>Age must be 16 or older</p>}
     
           <label htmlFor="street">Street</label>
           <input type="text" id="street" name="street" value={street} onChange={this.handleChange} />
@@ -110,30 +158,26 @@ class StartApplicationForm extends Component {
         maxLength={5}
       />
 
-    
-          <button
-            type="submit"
-            disabled={!isComplete}
-            title={!isComplete ? "Please fill all the details" : ""}
-            className={styles.submitButton}
-          >
-            Submit
-          </button>
+        {responseMessage && <div className={styles.responseMessage}>{responseMessage}</div>}
+
+        <button
+          type="submit"
+          disabled={!isComplete || !isAgeValid || !isValidZip || isLoading}
+          title={!isComplete ? "Please fill all the details" : ""}
+          className={styles.submitButton}
+        >
+          {isLoading ? 'Processing...' : (isEditing ? "Update" : "Submit")}
+        </button>
     
           {skipToFinalStep && (
-            <button type="button" className={`${styles.button} ${styles.cancel}`} onClick={this.handleCancel}>
+            <button type="button" disabled={isLoading} className={`${styles.button} ${styles.cancel}`} onClick={this.handleCancel}>
               Cancel
             </button>
           )}
         </form>
       </div>
-    );
-    
-    
-    
-      
-}
-
+    ); 
+  }
 }
 
 export default StartApplicationForm;
