@@ -11,7 +11,7 @@
     "prisma:generate": "cd backend && npx prisma generate",
     "start:frontend": "cd frontend && npm start",
     "start:backend": "cd backend && npm start",
-    "start": "npm run docker:up && npm run install:frontend && npm run install:backend && npm run prisma:migrate && npm run prisma:generate && concurrently \"npm run start:frontend\" \"npm run start:backend\""
+    "start": "npm install && npm run docker:up && npm run install:frontend && npm run install:backend && npm run prisma:migrate && npm run prisma:generate && concurrently \"npm run start:frontend\" \"npm run start:backend\""
 },
   "keywords": [],
   "author": "",
