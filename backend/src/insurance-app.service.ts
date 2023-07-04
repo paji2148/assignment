@@ -111,7 +111,7 @@ export class InsuranceApplicationService {
 
     // Validate Vehicle year
     if (vehicle.year < 1985 || vehicle.year > new Date().getFullYear() + 1) {
-      throw new BadRequestException('Vehicle year should be between 1985 and current year + 1');
+      throw new BadRequestException('Vehicle year should be from 1985 and ' + (new Date().getFullYear() + 1));
     }
 
     const vehicleCount = await this.countVehicles(applicationId);
@@ -163,7 +163,7 @@ export class InsuranceApplicationService {
 
     // Validate Vehicle year
     if (vehicle.year < 1985 || vehicle.year > new Date().getFullYear() + 1) {
-      throw new BadRequestException('Vehicle year should be between 1985 and current year + 1');
+      throw new BadRequestException('Vehicle year should be from 1985 and ' + (new Date().getFullYear() + 1));
     }
 
 
