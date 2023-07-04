@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["views"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+}
+
+model InsuranceApplication {
+  id                String   @id @default(uuid()) @db.Uuid
+  firstName         String
+  lastName          String
+  dateOfBirth       String
+  addressId         String
+  address           Address           @relation(fields: [addressId], references: [id])
+  vehicles          Vehicle[]
+  additionalPeople  AdditionalPerson[]
+  submitted         Boolean @default(false)  // Add this field
+  price             Float?  // Add this field to store the insurance price
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model AdditionalPerson {
+  id                String            @id @default(uuid())
+  firstName         String
+  lastName          String
+  dateOfBirth       String
+  relationship      String
+  applicationId     String   @db.Uuid
+  application       InsuranceApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+
+model Address {
+  id        String    @id @default(uuid())
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  applications InsuranceApplication[]
+}
+
+model Vehicle {
+  id        String    @id @default(uuid())
+  vin       String
+  year      Int
+  make      String
+  model     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  applicationId     String   @db.Uuid
+  application       InsuranceApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
