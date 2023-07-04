@@ -8,16 +8,15 @@ import api from '../api/apiHelper';
 
 const initialState = {
   step: 1,
-  applicationId: null,
+  applicationId: '',
   firstName: '',
   lastName: '',
-  email:'',
   dateOfBirth: '',
   street: '',
   city: '',
   state: '',
   zipCode: '',
-  additionalPeople: [],
+  persons: [],
   vehicles: [],
   isEditing: false,
   isAdding: false,
@@ -38,12 +37,9 @@ class InsuranceApplication extends Component {
     };
   }
 
-  componentDidUpdate(prevState) {
-  }
-
   componentDidMount() {
     let applicationId;
-    applicationId = sessionStorage.getItem('applicationId');
+    applicationId = localStorage.getItem('applicationId');
     this.setState({ banner: true });
     if (!applicationId) {
       const queryParams = new URLSearchParams(window.location.search)
@@ -62,7 +58,6 @@ class InsuranceApplication extends Component {
           }, 1000);
         })
         .catch(err => {
-          console.error(err);
           setTimeout(() => {
             this.setState({ error: 'Failed to fetch application' });
             this.setState(initialState);
@@ -98,8 +93,8 @@ class InsuranceApplication extends Component {
   handleEditData = (index, step, data = null) => {
     this.setState({ isEditing: true, editIndex: index, step: step });
     if (data) {
-      const { firstName, lastName, email, dateOfBirth, street, city, state, zipCode } = data;
-      this.setState({ firstName, lastName, email, dateOfBirth, street, city, state, zipCode });
+      const { firstName, lastName, dateOfBirth, street, city, state, zipCode } = data;
+      this.setState({ firstName, lastName, dateOfBirth, street, city, state, zipCode });
     }
   };
 
@@ -109,12 +104,13 @@ class InsuranceApplication extends Component {
 
   handleDeletePerson = this.showActionBanner(async (index) => {
     const { applicationId } = this.state;
-    const updatedPeople = [...this.state.additionalPeople];
+    const updatedPeople = [...this.state. persons];
     try{
       this.setState({ banner: true });
-      await api.deletePerson(applicationId, updatedPeople[index].personId);
+      const response = await api.deletePerson(applicationId, updatedPeople[index].personId);
+       
       updatedPeople.splice(index, 1);
-      this.setState({ additionalPeople: updatedPeople });
+      this.setState({  persons: updatedPeople });
       setTimeout(() => {
         this.setState({  successMessage: 'Person deleted successfully' });
       }, 2000);
@@ -131,7 +127,8 @@ class InsuranceApplication extends Component {
     const updatedVehicles = [...this.state.vehicles];
     try{
       this.setState({ banner: true });
-      await api.deleteVehicle(applicationId, updatedVehicles[index].vehicleId);
+      const response = await api.deleteVehicle(applicationId, updatedVehicles[index].vehicleId);
+       
       updatedVehicles.splice(index, 1);
       this.setState({ vehicles: updatedVehicles });
       setTimeout(() => {
@@ -149,7 +146,8 @@ class InsuranceApplication extends Component {
     const { applicationId } = this.state;
     try{
       this.setState({ banner: true });
-      await api.deleteInsuranceApplication(applicationId);
+      const response = await api.deleteInsuranceApplication(applicationId);
+       
       this.setState(initialState);
       setTimeout(() => {
         this.setState({ successMessage: 'Application deleted successfully'});
@@ -164,33 +162,32 @@ class InsuranceApplication extends Component {
   handleSubmitApplication = this.showActionBanner(async () => {
     const { applicationId } = this.state;
     try{
+      this.setState({ banner: true });
       const res = await api.submitInsuranceApplication(applicationId);
       this.setState({price: res.price});
       setTimeout(() => {
-        this.setState({ banner: false, successMessage: 'Application submitted successfully', price: res.price });
+        this.setState({ successMessage: 'Application submitted successfully', price: res.price });
       }, 2000);
     } catch (err) {
-      console.log(err);
       setTimeout(() => {
-        this.setState({ banner: false, error: 'Failed to submit application' });
+        this.setState({ error: 'Failed to submit application' });
       }, 2000);
     }
   });
 
   handleFormSubmit = (formData) => {
-    console.log(formData)
-    const { step, isEditing, editIndex, applicationId, skipToFinalStep} = this.state;
+    const { step, isEditing, editIndex} = this.state;
     if (step === 1) {
-        const { firstName, lastName, email, dateOfBirth, street, city, state, zipCode, applicationId } = formData;
-        this.setState({ firstName, lastName, email, dateOfBirth, street, city, state, zipCode, applicationId,  });
+        const { firstName, lastName, dateOfBirth, street, city, state, zipCode, applicationId } = formData;
+        this.setState({ firstName, lastName, dateOfBirth, street, city, state, zipCode, applicationId,  });
     } else if (step === 2) {
       if (isEditing) {
-        const updatedPeople = [...this.state.additionalPeople];
+        const updatedPeople = [...this.state. persons];
         updatedPeople[editIndex] = formData;
-        this.setState({ additionalPeople: updatedPeople, isEditing: false, editIndex: null });
+        this.setState({  persons: updatedPeople, isEditing: false, editIndex: null });
     } else {
-        const additionalPeople = [...this.state.additionalPeople, ...formData];
-        this.setState({ additionalPeople });
+        const  persons = [...this.state. persons, ...formData];
+        this.setState({  persons });
       }
     } else if (step === 3) {
       if (isEditing) {
@@ -211,13 +208,12 @@ class InsuranceApplication extends Component {
       step,
       firstName,
       lastName,
-      email,
       dateOfBirth,
       street,
       city,
       state,
       zipCode,
-      additionalPeople,
+       persons,
       vehicles,
       isEditing,
       isAdding,
@@ -236,7 +232,6 @@ class InsuranceApplication extends Component {
             applicationId= {applicationId}
             firstName={firstName}
             lastName={lastName}
-            email={email}
             dateOfBirth={dateOfBirth}
             street={street}
             city={city}
@@ -251,7 +246,7 @@ class InsuranceApplication extends Component {
           <PersonInfoForm
             onNextStep={this.handleNextStep}
             onFormSubmit={this.handleFormSubmit}
-            person={isEditing ? additionalPeople[editIndex] : null}
+            person={isEditing ?  persons[editIndex] : null}
             isEditing={isEditing}
             isAdding={isAdding}
             skipToFinalStep={skipToFinalStep}
@@ -293,9 +288,9 @@ class InsuranceApplication extends Component {
                           <div>
                               <label>Last Name:</label> <span>{lastName}</span>
                           </div>
-                          <div>
+                          {/* <div>
                               <label>Email:</label> <span>{email}</span>
-                          </div>
+                          </div> */}
                           <div>
                               <label>Date of Birth:</label> <span>{dateOfBirth}</span>
                           </div>
@@ -311,14 +306,14 @@ class InsuranceApplication extends Component {
                           <div>
                               <label>Zip Code:</label> <span>{zipCode}</span>
                           </div>
-                          <button className={styles.editButton} onClick={() => this.handleEditData(null, 1, {firstName, lastName, email, dateOfBirth, street, city, state, zipCode})}>
+                          <button className={styles.editButton} onClick={() => this.handleEditData(null, 1, {firstName, lastName, dateOfBirth, street, city, state, zipCode})}>
                               Edit Person
                           </button>
                       </div>
       
-                      <div className={styles.additionalPeople}>
+                      <div className={styles. persons}>
                           <h3>Additional People:</h3>
-                          {additionalPeople.map((person, index) => (
+                          { persons.map((person, index) => (
                               <div key={index}>
                                   <div>
                                       <label>First Name:</label> <span>{person.firstName}</span>

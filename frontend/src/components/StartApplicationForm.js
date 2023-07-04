@@ -6,24 +6,25 @@ class StartApplicationForm extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      applicationId: props.applicationId,
+      applicationId: props.applicationId || '',
       firstName: props.firstName || '',
-      lastName: props.lastName || ' ',
-      email: props.email || '',
-      dateOfBirth: props.dateOfBirth || ' ',
-      street: props.street || ' ',
-      city: props.city || ' ',
-      state: props.state || ' ',
-      zipCode: props.zipCode ||  null,
+      lastName: props.lastName || '',
+      dateOfBirth: props.dateOfBirth || '',
+      street: props.street || '',
+      city: props.city || '',
+      state: props.state || '',
+      zipCode: props.zipCode ||  '',
       isEditing: props.isEditing || false,
       skipToFinalStep: props.skipToFinalStep || false,
       isLoading: false,
-      responseMessage: null
+      error: null, 
+      successMessage: null
     };
   }
 
   handleChange = (e) => {
     this.setState({ [e.target.name]: e.target.value });
+    this.setState({error: null, successMessage: null});
   }
 
   handleZipCodeChange = (event) => {
@@ -33,6 +34,7 @@ class StartApplicationForm extends Component {
   };
 
   handleCancel= (e) => {
+    this.setState({error: null, successMessage: null});
     this.props.onNextStep();    
   }
 
@@ -49,16 +51,15 @@ class StartApplicationForm extends Component {
 
   handleSubmit = async (e) => {
     e.preventDefault();
-    this.setState({ isLoading: true, responseMessage: null });
+    this.setState({ isLoading: true, error: null, successMessage: null });
 
-    const { firstName, lastName, email, dateOfBirth, street, city, state, zipCode, isEditing } = this.state;
+    const { firstName, lastName, dateOfBirth, street, city, state, zipCode, isEditing } = this.state;
     let applicationId = this.state.applicationId;
   
     try {
       const applicationDto = {
         firstName,
         lastName,
-        email,
         dateOfBirth,
         address: {
           street,
@@ -67,24 +68,24 @@ class StartApplicationForm extends Component {
           zipCode,
         },
       };
-      let response = null;
+      let successMessage;
       if (isEditing) {
-        response = await api.updateInsuranceApplication(this.state.applicationId, applicationDto);
-        this.setState({ responseMessage: 'application updated Successful!' });
+        await api.updateInsuranceApplication(this.state.applicationId, applicationDto);
+        successMessage = "updated Successful!";
       } else {
-        response = await api.createInsuranceApplication(applicationDto);
+        const response = await api.createInsuranceApplication(applicationDto);         
         applicationId = response.applicationId;
-        applicationId = sessionStorage.setItem('applicationId', applicationId);
-        this.setState({ responseMessage: 'Insurance application created!' });
+        localStorage.setItem('applicationId', applicationId);
+        successMessage = "Insurance application created!";
       }
-
       setTimeout(() => {
-        this.props.onFormSubmit({ firstName, lastName, email, dateOfBirth, street, city, state, zipCode, applicationId });
-        this.setState({ isLoading: false });
-      }, 2000);
+        this.props.onFormSubmit({ firstName, lastName, dateOfBirth, street, city, state, zipCode, applicationId });
+        this.setState({ error: null, successMessage, isLoading: false });
+      }, 1500);
     } catch (error) {
-      console.error(error);
-      this.setState({ responseMessage: 'Failed to submit!', isLoading: false });
+      setTimeout(() => {
+        this.setState({error: "Failed", successMessage: null, isLoading: false});
+      }, 1500);
     }
   }
   
@@ -93,7 +94,6 @@ class StartApplicationForm extends Component {
   render() {
     const {firstName,
       lastName,
-      email,
       dateOfBirth,
       street,
       city,
@@ -102,15 +102,19 @@ class StartApplicationForm extends Component {
       skipToFinalStep,
       isEditing,
       isLoading,
-      responseMessage
+      error,
+      successMessage
     } = this.state;
-
-    console.log(this.state)
 
     const age = this.calculateAge(dateOfBirth);
     const isAgeValid = age >= 16;
     const isValidZip = /^\d{5}$/.test(zipCode);
-    const isComplete = firstName && lastName && email && dateOfBirth && street && city && state && zipCode ? true : false;
+    const isComplete = firstName && lastName && dateOfBirth && street && city && state && zipCode ? true : false;
+    // let isValidEmail = true;
+    // if (email) {
+    //   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    //   isValidEmail = emailRegex.test(email);
+    // }
 
     return (
       <div className={styles.formContainer}>
@@ -128,12 +132,13 @@ class StartApplicationForm extends Component {
             </div>
           </div>
     
-          <label htmlFor="email">Email</label>
+          {/* <label htmlFor="email">Email</label>
           <input type="text" id="email" name="email" value={email} onChange={this.handleChange} />
+          {!isValidEmail && <p className={styles.errorMessage}>Email is not valid</p>} */}
     
           <label htmlFor="dateOfBirth">Date of Birth</label>
           <input type="date" id="dateOfBirth" name="dateOfBirth" value={dateOfBirth} onChange={this.handleChange} />
-          {!isAgeValid && <p className={styles.errorMessage}>Age must be 16 or older</p>}
+          {(dateOfBirth && !isAgeValid) && <p className={styles.errorMessage}>Age must be 16 or older</p>}
     
           <label htmlFor="street">Street</label>
           <input type="text" id="street" name="street" value={street} onChange={this.handleChange} />
@@ -158,7 +163,8 @@ class StartApplicationForm extends Component {
         maxLength={5}
       />
 
-        {responseMessage && <div className={styles.responseMessage}>{responseMessage}</div>}
+                {error && <div className={styles.errorMessage}>{error}</div>}
+                {successMessage && <div className={styles.responseMessage}>{successMessage}</div>}
 
         <button
           type="submit"

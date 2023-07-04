@@ -6,16 +6,17 @@ import api from '../api/apiHelper';
 class VehicleInfoForm extends Component {
   constructor(props) {
     super(props);
-    const initialVehicle = props.vehicle || { make: 'eee', model: 'eee', year: 2002, vin: '2222'};
+    const initialVehicle = props.vehicle || { make: '', model: '', year: undefined, vin: ''};
     this.state = {
         vehicles: props.vehicles || [],
         currentVehicle: initialVehicle,
-        applicationId: props.applicationId,
+        applicationId: props.applicationId || '',
         isEditing: props.isEditing || false,
         skipToFinalStep: props.skipToFinalStep || false,
         isAddingVehicle: true,
         isLoading: false,
-        responseMessage: null,
+        error: null, 
+        successMessage: null 
     };
   }
 
@@ -26,21 +27,26 @@ class VehicleInfoForm extends Component {
 
   handleInputChange = (e) => {
     const { name, value } = e.target;
-    const { currentVehicle, isEditing, skipToFinalStep } = this.state;
+  
+    let parsedValue = value;
     if (name === "year") {
-      if (value.length > 4) {
-        return; // Don't update the state if it's not a number or more than 4 digits
+      parsedValue = value.replace(/\D/g, "").slice(0, 4);
+      if (parsedValue) {
+        parsedValue = parseInt(parsedValue, 10);
       }
     }
+  
     this.setState((prevState) => ({
-      currentVehicle: { ...prevState.currentVehicle, [name]: value },
+      currentVehicle: { ...prevState.currentVehicle, [name]: parsedValue },
+      error: null, successMessage: null
     }));
   };
+  
 
   handleSaveVehicle = async (e) => {
 
     e.preventDefault();
-    this.setState({ isLoading: true, responseMessage: null });
+    this.setState({ isLoading: true, successMessage: null, error: null });
     // if (currentVehicle.firstName && currentVehicle.lastName && currentVehicle.dateOfBirth && currentVehicle.vin) {
       const { currentVehicle, isEditing, skipToFinalStep, applicationId } = this.state;
       if (currentVehicle.make && currentVehicle.model && currentVehicle.year && currentVehicle.vin) {
@@ -53,46 +59,47 @@ class VehicleInfoForm extends Component {
           };
           let response;
           if (isEditing) {
-            response = await api.updateVehicle(applicationId, currentVehicle.vehicleId, vehicleDto)
-            this.setState({ responseMessage: 'Successful!'});
+            response = await api.updateVehicle(applicationId, currentVehicle.vehicleId, vehicleDto);
+
+            this.setState({ successMessage: 'Successful!'});
             setTimeout(() => {
               this.props.onFormSubmit(currentVehicle);
               this.setState({ isLoading: false });
-            }, 2000);
-          }else if (skipToFinalStep) {
+            }, 1500);
+          } else if (skipToFinalStep) {
             response = await api.addVehicle(applicationId, vehicleDto)
+            
             vehicleDto.vehicleId  = response.vehicleId;
-            this.setState({ responseMessage: 'Successful!'});
+            this.setState({ successMessage: 'Successful!'});
             setTimeout(() => {
-              this.props.onFormSubmit([vehicleDto]);
-              this.setState({ isLoading: false });
-            }, 2000);
-            console.log(vehicleDto, 'id of v')
-              this.props.onFormSubmit([vehicleDto]);
+                this.props.onFormSubmit([vehicleDto]);
+                this.setState({ isLoading: false });
+            }, 1500);
           } else {
             response = await api.addVehicle(applicationId, vehicleDto);
-            vehicleDto.personId = response.vehicleId
-            this.setState({ responseMessage: 'Successful!'});
+            
+            vehicleDto.personId = response.vehicleId;
             setTimeout(() => {
+              this.setState({ successMessage: 'Successful!'});
               this.setState((prevState) => ({
                 vehicles: [...prevState.vehicles, vehicleDto],
                 currentVehicle: { make: '', model: '', year: '', vin: '' },
                 isAddingVehicle: false,
                 isLoading: false 
               }));
-            }, 2000);
-            console.log('vehicle dto', vehicleDto)
+            }, 1500);
           }
 
         } catch(err) {
-          console.error(error);
-        this.setState({ responseMessage: 'Failed to submit!', isLoading: false });
+          setTimeout(() => {
+            this.setState({ error: 'Failed!', isLoading: false });
+          }, 1500);
         }
       }
   };
 
   handleAddAnotherVehicle = () => {
-    this.setState({ isAddingVehicle: true, isLoading: false, responseMessage: null });
+    this.setState({ isAddingVehicle: true, isLoading: false,  error: null, successMessage: null });
   };
 
   handleCancel = () => {
@@ -100,10 +107,10 @@ class VehicleInfoForm extends Component {
     if (skipToFinalStep) {
       this.props.onNextStep();
     } else {
-      this.setState((prevState) => ({
+      this.setState(() => ({
         currentVehicle: { make: '', model: '', year: '', vin: '', vehicleId: '' },
         isAddingVehicle: false,
-        isLoading: false, responseMessage: null
+        isLoading: false, error: null, successMessage: null
       }));
     }
   };
@@ -114,8 +121,7 @@ class VehicleInfoForm extends Component {
   };
 
   render() {
-    console.log(this.state, 'hghhhh');
-    const { vehicles, currentVehicle, isEditing, isAddingVehicle, skipToFinalStep, isLoading, responseMessage } = this.state;
+    const { vehicles, currentVehicle, isEditing, isAddingVehicle, skipToFinalStep, isLoading, error, successMessage } = this.state;
     const isValidYear = this.validateYear(currentVehicle.year);
     const isComplete = currentVehicle.make && currentVehicle.model && currentVehicle.year && currentVehicle.vin ? true : false;
 
@@ -153,7 +159,7 @@ class VehicleInfoForm extends Component {
                 onChange={this.handleInputChange}
             />
             </label>
-            {!isValidYear && <p className={styles.errorMessage}>year must be between 1985 and {new Date().getFullYear() + 1}</p>}
+            {(currentVehicle.year && !isValidYear) && <p className={styles.errorMessage}>year must be between 1985 and {new Date().getFullYear() + 1}</p>}
             <br />
             <label>
               VIN:
@@ -166,7 +172,8 @@ class VehicleInfoForm extends Component {
             </label>
             <br />
 
-            {responseMessage && <div className={styles.responseMessage}>{responseMessage}</div>}
+            {error && <div className={styles.errorMessage}>{error}</div>}
+            {successMessage && <div className={styles.responseMessage}>{successMessage}</div>}
 
             <button
               type="submit"
