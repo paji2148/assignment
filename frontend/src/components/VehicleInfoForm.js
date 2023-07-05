@@ -78,7 +78,7 @@ class VehicleInfoForm extends Component {
           } else {
             response = await api.addVehicle(applicationId, vehicleDto);
             
-            vehicleDto.personId = response.vehicleId;
+            vehicleDto.vehicleId = response.vehicleId;
             setTimeout(() => {
               this.setState({ successMessage: 'Successful!'});
               this.setState((prevState) => ({
