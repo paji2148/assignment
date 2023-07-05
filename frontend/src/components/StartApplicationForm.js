@@ -77,12 +77,14 @@ class StartApplicationForm extends Component {
         applicationId = response.applicationId;
         localStorage.setItem('applicationId', applicationId);
         successMessage = "Insurance application created!";
+        this.setState({ error: null, successMessage})
       }
       setTimeout(() => {
         this.props.onFormSubmit({ firstName, lastName, dateOfBirth, street, city, state, zipCode, applicationId });
-        this.setState({ error: null, successMessage, isLoading: false });
+        this.setState({ isLoading: false });
       }, 1500);
     } catch (error) {
+      this.setState({error: "Failed", successMessage: null});
       setTimeout(() => {
         this.setState({error: "Failed", successMessage: null, isLoading: false});
       }, 1500);

@@ -75,9 +75,15 @@ export class InsuranceApplicationService {
       data: {
         firstName: updateDto.firstName,
         lastName: updateDto.lastName,
-        // email: updateDto.email,
         dateOfBirth: updateDto.dateOfBirth,
-        // Update other fields as needed
+        address: {
+          update: {
+            street: updateDto.address.street,
+            city: updateDto.address.city,
+            state: updateDto.address.state,
+            zipCode: updateDto.address.zipCode
+          }
+        }
       },
     });
   

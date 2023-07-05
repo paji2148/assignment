@@ -48,14 +48,34 @@ class InsuranceApplication extends Component {
     if (applicationId) {
       api.getInsuranceApplication(applicationId)
         .then(response => {
-          const { ...applicationData } = response;
-          this.setState({ ...applicationData, step:2, applicationId: applicationId });
-          if (response.submitted || response.vehicles) {
-            this.setState({step: 4, skipToFinalStep: true })
-          }
+            const {
+              address = {},
+              applicationId,
+              firstName,
+              lastName,
+              dateOfBirth,
+              price,
+              persons,
+              vehicles
+            } = response;
+          
+            this.setState({
+              firstName,
+              lastName,
+              dateOfBirth,
+              persons,
+              vehicles,
+              price,
+              ...address, 
+              step: 2,
+              applicationId: applicationId
+          });
           setTimeout(() => {
             this.setState({ banner: false });
           }, 1000);
+          if (response.submitted || response.vehicles) {
+            this.setState({step: 4, skipToFinalStep: true })
+          }
         })
         .catch(err => {
           setTimeout(() => {
